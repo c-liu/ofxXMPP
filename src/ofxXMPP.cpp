@@ -7,7 +7,6 @@
 
 #include "ofxXMPP.h"
 #include "ofUtils.h"
-#include "ofConstants.h"
 
 xmpp_ctx_t *ofxXMPP::ctx=NULL;
 string ofxXMPP::LOG_NAME = "ofxXMPP";
@@ -72,7 +71,7 @@ void ofxXMPP::conn_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t sta
                   void * const userdata)
 {
 	ofxXMPP * xmpp = (ofxXMPP*) userdata;
-
+    cout<<"\nstatus "<<status<<" connect:"<<XMPP_CONN_CONNECT<<" disconnect"<<XMPP_CONN_DISCONNECT<<" fail"<<XMPP_CONN_FAIL<<" error"<<error;
     if (status == XMPP_CONN_CONNECT) {
         ofLogVerbose() << "connected\n";
         xmpp->sendPressence();
@@ -80,12 +79,21 @@ void ofxXMPP::conn_handler(xmpp_conn_t * const conn, const xmpp_conn_event_t sta
     } else {
         ofLogVerbose() << "disconnected\n";
         xmpp->mutex.lock();
+        cout<<"\nlock";
         if(xmpp->disconnecting){
         	xmpp->disconnection.signal();
+            
+            cout<<"\nunlock disconnecting";
         	xmpp->mutex.unlock();
         }else{
         	xmpp->mutex.unlock();
-        	xmpp->stop();
+        	
+            if(error !=0){
+                cout<<"\nunlock + stop";
+                xmpp->stop();
+                //xmpp->disconnection.signal();
+                cout<<"stopped";
+            }
         }
         xmpp->connectionState = ofxXMPPDisconnected;
     }
@@ -107,10 +115,6 @@ string getTextFromStanzasChild(const string & childName, xmpp_stanza_t * stanza)
 }
 
 void ofxXMPP::addTextChild(xmpp_stanza_t * stanza, const string & textstr){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call addTextChild, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * text = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_text(text,textstr.c_str());
 	xmpp_stanza_add_child(stanza,text);
@@ -549,10 +553,6 @@ void ofxXMPP::setCapabilities(const string & capabilities){
 }
 
 void ofxXMPP::sendMessage(const string & to, const string & message){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call sendMessage, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * msg = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(msg,"message");
 	xmpp_stanza_set_attribute(msg,"type","chat");
@@ -574,10 +574,6 @@ void ofxXMPP::sendMessage(const string & to, const string & message){
 }
 
 void ofxXMPP::sendPressence(){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call sendPressence, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t* pres = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(pres, "presence");
 
@@ -726,10 +722,6 @@ string ofxXMPP::getBoundJID(){
 
 
 xmpp_stanza_t * ofxXMPP::stanzaFromICETransport(const ofxXMPPICETransport & transport){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call stanzaFromICETransport, xmpp not initialized";
-		return NULL;
-	}
 	xmpp_stanza_t * transport_stanza = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(transport_stanza,"transport");
 	xmpp_stanza_set_ns(transport_stanza,"urn:xmpp:jingle:transports:ice-udp:1");
@@ -759,10 +751,6 @@ xmpp_stanza_t * ofxXMPP::stanzaFromICETransport(const ofxXMPPICETransport & tran
 }
 
 void ofxXMPP::initiateRTP(const string & to, ofxXMPPJingleInitiation & jingleInitiation){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call initiateRTP, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",to.c_str());
@@ -829,10 +817,6 @@ void ofxXMPP::ack(const ofxXMPPJingleInitiation & jingle){
 	    to='romeo@montague.lit/orchard'
 	    type='result'/>*/
 
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call ack, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",jingle.from.c_str());
@@ -849,10 +833,6 @@ void ofxXMPP::ack(const ofxXMPPJingleFileInitiation & jingle){
 	    to='romeo@montague.lit/orchard'
 	    type='result'/>*/
 
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call ack, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",jingle.from.c_str());
@@ -877,10 +857,6 @@ void ofxXMPP::ring(const ofxXMPPJingleInitiation & xmppJingle){
 	  </jingle>
 	</iq>*/
 
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call ring, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",xmppJingle.from.c_str());
@@ -908,10 +884,6 @@ void ofxXMPP::ring(const ofxXMPPJingleInitiation & xmppJingle){
 }
 
 void ofxXMPP::ackRing(const string & to, const string & sid){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call ackRing, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",to.c_str());
@@ -923,13 +895,25 @@ void ofxXMPP::ackRing(const string & to, const string & sid){
 
 void ofxXMPP::stop(){
 	mutex.lock();
+    int count=0;
+    cout<<"\nstep"<<count++;
 	disconnecting = true;
 	xmpp_disconnect(conn);
+    
+    cout<<"\nstep"<<count++;
 	disconnection.wait(mutex);
+    
+    cout<<"\nstep"<<count++;
 	xmpp_stop(ctx);
+    
+    cout<<"\nstep"<<count++;
 	waitForThread();
+    
+    cout<<"\nstep"<<count++;
 	xmpp_conn_release(conn);
 	xmpp_ctx_free(ctx);
+    
+    cout<<"\nstep"<<count++;
 	ctx = NULL;
 	conn = NULL;
 	disconnecting = false;
@@ -938,10 +922,6 @@ void ofxXMPP::stop(){
 }
 
 void ofxXMPP::initiateFileTransfer(const string & to, ofxXMPPJingleFileInitiation & jingleFileInitiation){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call initiateFileTransfer, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",to.c_str());
@@ -1032,10 +1012,6 @@ void ofxXMPP::initiateFileTransfer(const string & to, ofxXMPPJingleFileInitiatio
 
 
 void ofxXMPP::acceptFileTransfer(ofxXMPPJingleFileInitiation & jingleFileInitiation){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call acceptFileTransfer, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",jingleFileInitiation.from.c_str());
@@ -1126,10 +1102,6 @@ void ofxXMPP::acceptFileTransfer(ofxXMPPJingleFileInitiation & jingleFileInitiat
 
 
 void ofxXMPP::sendFileHash(const string & to, const ofxXMPPJingleHash & hash){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call sendFileHash, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",to.c_str());
@@ -1175,10 +1147,6 @@ void ofxXMPP::sendFileHash(const string & to, const ofxXMPPJingleHash & hash){
 }
 
 void ofxXMPP::ack(const ofxXMPPJingleHash & hash){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call ack, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",hash.from.c_str());
@@ -1226,18 +1194,10 @@ void ofxXMPP::ack(const ofxXMPPJingleHash & hash){
 }
 
 void ofxXMPP::threadedFunction(){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't start thread, xmpp not initialized";
-		return;
-	}
 	xmpp_run(ctx);
 }
 
 void ofxXMPP::acceptRTPSession(const string & to, ofxXMPPJingleInitiation & jingleInitiation){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call acceptRTPSession, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",to.c_str());
@@ -1301,10 +1261,6 @@ void ofxXMPP::acceptRTPSession(const string & to, ofxXMPPJingleInitiation & jing
 
 
 void ofxXMPP::terminateRTPSession(ofxXMPPJingleInitiation & jingle, ofxXMPPTerminateReason reason){
-	if(!ctx){
-		ofLogError(LOG_NAME) << "can't call terminateRTPSession, xmpp not initialized";
-		return;
-	}
 	xmpp_stanza_t * iq = xmpp_stanza_new(ctx);
 	xmpp_stanza_set_name(iq,"iq");
 	xmpp_stanza_set_attribute(iq,"to",jingle.from.c_str());
